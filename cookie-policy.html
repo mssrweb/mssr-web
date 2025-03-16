@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Çerez Politikası - MSSR Web</title>
+    <link rel="stylesheet" href="style.css">
+    <script>
+        // Dinamik favicon oluşturma
+        document.addEventListener('DOMContentLoaded', function() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 32;
+            canvas.height = 32;
+            const ctx = canvas.getContext('2d');
+
+            // Gradient arka plan
+            const gradient = ctx.createLinearGradient(0, 0, 32, 32);
+            gradient.addColorStop(0, '#2563eb');
+            gradient.addColorStop(1, '#3b82f6');
+            
+            // Arka planı çiz
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.roundRect(0, 0, 32, 32, 8);
+            ctx.fill();
+
+            // 'M' harfini çiz
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 24px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('M', 16, 18);
+
+            // Favicon olarak ayarla
+            const link = document.createElement('link');
+            link.type = 'image/x-icon';
+            link.rel = 'shortcut icon';
+            link.href = canvas.toDataURL();
+            document.head.appendChild(link);
+        });
+    </script>
+</head>
+<body>
+    <nav class="main-nav" role="navigation" aria-label="Ana menü">
+        <div class="container">
+            <a href="/" class="logo" aria-label="MSSR Ana Sayfa">MSSR</a>
+            <ul id="nav-links" class="nav-links" role="menubar">
+                <li role="none"><a href="/mssr-web/" role="menuitem">Ana Sayfa</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="policy-content">
+        <div class="container">
+            <h1>Çerez Politikası</h1>
+            
+            <section>
+                <h2>1. Çerez Nedir?</h2>
+                <p>Çerezler, web sitemizi ziyaret ettiğinizde tarayıcınıza yerleştirilen küçük metin dosyalarıdır. Bu dosyalar, size daha iyi bir kullanıcı deneyimi sunmamıza yardımcı olur.</p>
+            </section>
+
+            <section>
+                <h2>2. Kullandığımız Çerez Türleri</h2>
+                <h3>Zorunlu Çerezler</h3>
+                <p>Web sitesinin temel işlevleri için gereklidir ve devre dışı bırakılamazlar.</p>
+
+                <h3>Analitik Çerezler</h3>
+                <p>Web sitemizin nasıl kullanıldığını anlamamıza yardımcı olur. Bu bilgiler, siteyi iyileştirmek için kullanılır.</p>
+
+                <h3>Pazarlama Çerezleri</h3>
+                <p>Reklam ve pazarlama faaliyetlerini kişiselleştirmek için kullanılır. Bu çerezleri tercihlerinize göre yönetebilirsiniz.</p>
+            </section>
+
+            <section>
+                <h2>3. Çerez Yönetimi</h2>
+                <p>Çerez tercihlerinizi aşağıdaki şekillerde yönetebilirsiniz:</p>
+                <ul>
+                    <li>Web sitemizdeki çerez yönetim panelini kullanarak</li>
+                    <li>Tarayıcı ayarlarınızı değiştirerek</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2>4. Çerezleri Devre Dışı Bırakma</h2>
+                <p>Çerezleri devre dışı bırakmak için tarayıcı ayarlarınızı değiştirebilirsiniz. Ancak bu, web sitemizin bazı özelliklerinin düzgün çalışmamasına neden olabilir.</p>
+            </section>
+
+            <section>
+                <h2>5. İletişim</h2>
+                <p>Çerez politikamızla ilgili sorularınız için bize <a href="mailto:mssr.web@gmail.com">mssr.web@gmail.com</a> adresinden ulaşabilirsiniz.</p>
+            </section>
+
+            <section>
+                <h2>6. Güncellemeler</h2>
+                <p>Bu çerez politikası periyodik olarak güncellenebilir. Son güncelleme tarihi: 17 Mart 2024</p>
+            </section>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-bottom">
+                <p>&copy; 2024 MSSR Web. Tüm hakları saklıdır.</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html> 

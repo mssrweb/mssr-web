@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gizlilik Politikası - MSSR Web</title>
+    <link rel="stylesheet" href="style.css">
+    <script>
+        // Dinamik favicon oluşturma
+        document.addEventListener('DOMContentLoaded', function() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 32;
+            canvas.height = 32;
+            const ctx = canvas.getContext('2d');
+
+            // Gradient arka plan
+            const gradient = ctx.createLinearGradient(0, 0, 32, 32);
+            gradient.addColorStop(0, '#2563eb');
+            gradient.addColorStop(1, '#3b82f6');
+            
+            // Arka planı çiz
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.roundRect(0, 0, 32, 32, 8);
+            ctx.fill();
+
+            // 'M' harfini çiz
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 24px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('M', 16, 18);
+
+            // Favicon olarak ayarla
+            const link = document.createElement('link');
+            link.type = 'image/x-icon';
+            link.rel = 'shortcut icon';
+            link.href = canvas.toDataURL();
+            document.head.appendChild(link);
+        });
+    </script>
+</head>
+<body>
+    <nav class="main-nav" role="navigation" aria-label="Ana menü">
+        <div class="container">
+            <a href="/mssr-web/" class="logo" aria-label="MSSR Ana Sayfa">MSSR</a>
+            <ul id="nav-links" class="nav-links" role="menubar">
+                <li role="none"><a href="/mssr-web/" role="menuitem">Ana Sayfa</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="policy-content">
+        <div class="container">
+            <h1>Gizlilik Politikası</h1>
+            
+            <section>
+                <h2>1. Bilgi Toplama</h2>
+                <p>MSSR Web olarak, sizinle ilgili aşağıdaki bilgileri toplayabiliriz:</p>
+                <ul>
+                    <li>Ad ve iletişim bilgileri</li>
+                    <li>E-posta adresi</li>
+                    <li>Telefon numarası</li>
+                    <li>Web sitesi kullanım bilgileri</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2>2. Bilgilerin Kullanımı</h2>
+                <p>Topladığımız bilgileri aşağıdaki amaçlarla kullanırız:</p>
+                <ul>
+                    <li>Size hizmet sağlamak</li>
+                    <li>İletişim kurmak</li>
+                    <li>Hizmetlerimizi iyileştirmek</li>
+                    <li>Yasal yükümlülükleri yerine getirmek</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2>3. Bilgi Güvenliği</h2>
+                <p>Bilgilerinizin güvenliğini sağlamak için çeşitli güvenlik önlemleri uyguluyoruz. Verileriniz şifreleme teknolojileri ile korunmaktadır.</p>
+            </section>
+
+            <section>
+                <h2>4. Bilgi Paylaşımı</h2>
+                <p>Bilgilerinizi üçüncü taraflarla paylaşmayız, ancak aşağıdaki durumlar istisnadır:</p>
+                <ul>
+                    <li>Yasal zorunluluk durumunda</li>
+                    <li>Sizin açık izniniz olduğunda</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2>5. İletişim</h2>
+                <p>Gizlilik politikamızla ilgili sorularınız için bize <a href="mailto:mssr.web@gmail.com">mssr.web@gmail.com</a> adresinden ulaşabilirsiniz.</p>
+            </section>
+
+            <section>
+                <h2>6. Güncellemeler</h2>
+                <p>Bu gizlilik politikası periyodik olarak güncellenebilir. Son güncelleme tarihi: 17 Mart 2024</p>
+            </section>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-bottom">
+                <p>&copy; 2024 MSSR Web. Tüm hakları saklıdır.</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html> 

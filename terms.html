@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kullanım Koşulları - MSSR Web</title>
+    <link rel="stylesheet" href="style.css">
+    <script>
+        // Dinamik favicon oluşturma
+        document.addEventListener('DOMContentLoaded', function() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 32;
+            canvas.height = 32;
+            const ctx = canvas.getContext('2d');
+
+            // Gradient arka plan
+            const gradient = ctx.createLinearGradient(0, 0, 32, 32);
+            gradient.addColorStop(0, '#2563eb');
+            gradient.addColorStop(1, '#3b82f6');
+            
+            // Arka planı çiz
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.roundRect(0, 0, 32, 32, 8);
+            ctx.fill();
+
+            // 'M' harfini çiz
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 24px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('M', 16, 18);
+
+            // Favicon olarak ayarla
+            const link = document.createElement('link');
+            link.type = 'image/x-icon';
+            link.rel = 'shortcut icon';
+            link.href = canvas.toDataURL();
+            document.head.appendChild(link);
+        });
+    </script>
+</head>
+<body>
+    <nav class="main-nav" role="navigation" aria-label="Ana menü">
+        <div class="container">
+            <a href="/mssr-web/" class="logo" aria-label="MSSR Ana Sayfa">MSSR</a>
+            <ul id="nav-links" class="nav-links" role="menubar">
+                <li role="none"><a href="/mssr-web/" role="menuitem">Ana Sayfa</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="policy-content">
+        <div class="container">
+            <h1>Kullanım Koşulları</h1>
+            
+            <section>
+                <h2>1. Kabul Edilen Şartlar</h2>
+                <p>Bu web sitesini kullanarak, aşağıdaki kullanım koşullarını kabul etmiş olursunuz. Bu koşulları kabul etmiyorsanız, lütfen sitemizi kullanmayın.</p>
+            </section>
+
+            <section>
+                <h2>2. Hizmetlerimiz</h2>
+                <p>MSSR Web olarak sunduğumuz hizmetler şunlardır:</p>
+                <ul>
+                    <li>Web Tasarımı</li>
+                    <li>Web Geliştirme</li>
+                    <li>SEO Optimizasyonu</li>
+                </ul>
+                <p>Hizmetlerimizin kalitesini ve güvenliğini sürekli iyileştirmeye çalışıyoruz.</p>
+            </section>
+
+            <section>
+                <h2>3. Fikri Mülkiyet Hakları</h2>
+                <p>Web sitemizdeki tüm içerik (metin, görseller, logolar, tasarım vb.) MSSR Web'e aittir ve telif hakkı kanunları ile korunmaktadır.</p>
+            </section>
+
+            <section>
+                <h2>4. Sorumluluk Reddi</h2>
+                <p>Web sitemizi ve hizmetlerimizi "olduğu gibi" sunuyoruz. Hizmetlerimizin kesintisiz veya hatasız olacağını garanti etmiyoruz.</p>
+            </section>
+
+            <section>
+                <h2>5. Kullanıcı Sorumlulukları</h2>
+                <p>Web sitemizi kullanırken:</p>
+                <ul>
+                    <li>Yasalara uygun davranmalısınız</li>
+                    <li>Başkalarının haklarına saygı göstermelisiniz</li>
+                    <li>Doğru ve güncel bilgiler sağlamalısınız</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2>6. Ödeme ve İade Koşulları</h2>
+                <p>Hizmetlerimizle ilgili ödeme ve iade koşulları, her proje için ayrı ayrı belirlenir ve sözleşmede belirtilir.</p>
+            </section>
+
+            <section>
+                <h2>7. İletişim</h2>
+                <p>Kullanım koşullarımızla ilgili sorularınız için bize <a href="mailto:mssr.web@gmail.com">mssr.web@gmail.com</a> adresinden ulaşabilirsiniz.</p>
+            </section>
+
+            <section>
+                <h2>8. Güncellemeler</h2>
+                <p>Bu kullanım koşulları periyodik olarak güncellenebilir. Son güncelleme tarihi: 17 Mart 2024</p>
+            </section>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-bottom">
+                <p>&copy; 2024 MSSR Web. Tüm hakları saklıdır.</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html> 

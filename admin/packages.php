@@ -1,94 +1,72 @@
 <?php
 require_once 'includes/config.php';
-checkSession();
+check_admin_session();
 
-// Sayfa başlığı
-$page_title = "Hizmet Paketleri";
+$success_message = '';
+$error_message = '';
 
 // Paket silme işlemi
-if (isset($_POST['delete']) && isset($_POST['id'])) {
-    if (!isset($_POST['csrf_token']) || !validateToken($_POST['csrf_token'])) {
-        die('CSRF token doğrulama hatası!');
-    }
-
-    $id = (int)$_POST['id'];
-    try {
-        $stmt = $db->prepare("DELETE FROM service_packages WHERE id = ?");
-        $stmt->execute([$id]);
-        
-        if ($stmt->rowCount() > 0) {
-            logActivity($_SESSION['admin_id'], 'package_delete', "Paket silindi (ID: $id)");
-            header('Location: packages.php?success=deleted');
-            exit();
+if (isset($_POST['delete']) && isset($_POST['package_id'])) {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        $error_message = 'Güvenlik doğrulaması başarısız!';
+    } else {
+        try {
+            $stmt = $pdo->prepare("DELETE FROM service_packages WHERE id = ?");
+            $stmt->execute([$_POST['package_id']]);
+            
+            log_activity($_SESSION['admin_id'], 'package_delete', "Paket silindi: ID " . $_POST['package_id']);
+            $success_message = 'Paket başarıyla silindi.';
+        } catch(PDOException $e) {
+            $error_message = 'Paket silinirken bir hata oluştu.';
+            error_log("Paket silme hatası: " . $e->getMessage());
         }
-    } catch (PDOException $e) {
-        $error = 'Paket silinirken bir hata oluştu!';
     }
 }
 
-// Paket durumunu güncelle
-if (isset($_POST['toggle_status']) && isset($_POST['id'])) {
-    if (!isset($_POST['csrf_token']) || !validateToken($_POST['csrf_token'])) {
-        die('CSRF token doğrulama hatası!');
-    }
-
-    $id = (int)$_POST['id'];
-    try {
-        $stmt = $db->prepare("UPDATE service_packages SET is_active = NOT is_active WHERE id = ?");
-        $stmt->execute([$id]);
-        
-        if ($stmt->rowCount() > 0) {
-            logActivity($_SESSION['admin_id'], 'package_status_update', "Paket durumu güncellendi (ID: $id)");
-            header('Location: packages.php?success=updated');
-            exit();
+// Durum güncelleme işlemi
+if (isset($_POST['toggle_status']) && isset($_POST['package_id'])) {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        $error_message = 'Güvenlik doğrulaması başarısız!';
+    } else {
+        try {
+            $stmt = $pdo->prepare("UPDATE service_packages SET is_active = NOT is_active WHERE id = ?");
+            $stmt->execute([$_POST['package_id']]);
+            
+            log_activity($_SESSION['admin_id'], 'package_status_update', "Paket durumu güncellendi: ID " . $_POST['package_id']);
+            $success_message = 'Paket durumu güncellendi.';
+        } catch(PDOException $e) {
+            $error_message = 'Durum güncellenirken bir hata oluştu.';
+            error_log("Paket durum güncelleme hatası: " . $e->getMessage());
         }
-    } catch (PDOException $e) {
-        $error = 'Paket durumu güncellenirken bir hata oluştu!';
     }
 }
 
-// Öne çıkan paket güncelle
-if (isset($_POST['toggle_featured']) && isset($_POST['id'])) {
-    if (!isset($_POST['csrf_token']) || !validateToken($_POST['csrf_token'])) {
-        die('CSRF token doğrulama hatası!');
-    }
-
-    $id = (int)$_POST['id'];
-    try {
-        // Önce tüm paketlerin öne çıkarma durumunu false yap
-        $stmt = $db->prepare("UPDATE service_packages SET is_featured = FALSE WHERE service_type = (SELECT service_type FROM service_packages WHERE id = ?)");
-        $stmt->execute([$id]);
-        
-        // Seçilen paketi öne çıkar
-        $stmt = $db->prepare("UPDATE service_packages SET is_featured = TRUE WHERE id = ?");
-        $stmt->execute([$id]);
-        
-        logActivity($_SESSION['admin_id'], 'package_featured_update', "Öne çıkan paket güncellendi (ID: $id)");
-        header('Location: packages.php?success=featured');
-        exit();
-    } catch (PDOException $e) {
-        $error = 'Öne çıkan paket güncellenirken bir hata oluştu!';
-    }
-}
-
-// Paketleri getir
+// Paketleri listele
 try {
-    $stmt = $db->query("SELECT * FROM service_packages ORDER BY service_type, price");
-    $packages = $stmt->fetchAll(PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
-    $error = 'Paketler getirilirken bir hata oluştu!';
+    $stmt = $pdo->query("
+        SELECT * FROM service_packages 
+        ORDER BY category, name
+    ");
+    $packages = $stmt->fetchAll();
+} catch(PDOException $e) {
+    $error_message = 'Paketler listelenirken bir hata oluştu.';
+    error_log("Paket listeleme hatası: " . $e->getMessage());
     $packages = [];
 }
 
-// CSRF token
-$csrf_token = generateToken();
+// Kategori isimleri
+$categories = [
+    'web_design' => 'Web Tasarım',
+    'web_development' => 'Web Geliştirme',
+    'seo' => 'SEO'
+];
 ?>
 <!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $page_title; ?> - MSSR Web Admin</title>
+    <title>Paket Yönetimi - MSSR Web Admin</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -100,246 +78,204 @@ $csrf_token = generateToken();
             background-color: #f8f9fa;
         }
         .sidebar {
+            width: var(--sidebar-width);
             position: fixed;
             top: 0;
             left: 0;
-            width: var(--sidebar-width);
             height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #2c3e50;
             padding: 1rem;
-            z-index: 1000;
+            color: white;
         }
-        .sidebar-logo {
-            text-align: center;
-            padding: 1rem 0;
-            margin-bottom: 2rem;
+        .sidebar-header {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 1rem;
         }
-        .sidebar-logo img {
-            max-width: 150px;
+        .sidebar-menu {
+            list-style: none;
+            padding: 0;
         }
-        .nav-link {
-            color: rgba(255, 255, 255, 0.8);
-            padding: 0.8rem 1rem;
+        .sidebar-menu li {
             margin-bottom: 0.5rem;
+        }
+        .sidebar-menu a {
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            display: block;
+            padding: 0.75rem 1rem;
             border-radius: 5px;
             transition: all 0.3s ease;
         }
-        .nav-link:hover, .nav-link.active {
+        .sidebar-menu a:hover {
+            background: rgba(255,255,255,0.1);
             color: white;
-            background: rgba(255, 255, 255, 0.1);
         }
-        .nav-link i {
-            width: 25px;
+        .sidebar-menu a.active {
+            background: #3498db;
+            color: white;
         }
         .main-content {
             margin-left: var(--sidebar-width);
             padding: 2rem;
         }
-        .top-bar {
-            background: white;
-            padding: 1rem 2rem;
-            margin: -2rem -2rem 2rem -2rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
         .package-card {
             background: white;
             border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            transition: transform 0.3s ease;
-        }
-        .package-card:hover {
-            transform: translateY(-5px);
-        }
-        .package-header {
             padding: 1.5rem;
-            border-bottom: 1px solid #e9ecef;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            position: relative;
+            overflow: hidden;
         }
-        .package-body {
-            padding: 1.5rem;
+        .package-card.inactive {
+            opacity: 0.7;
         }
-        .package-footer {
-            padding: 1rem 1.5rem;
-            background: #f8f9fa;
-            border-top: 1px solid #e9ecef;
-            border-radius: 0 0 10px 10px;
-        }
-        .feature-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-        .feature-list li {
-            padding: 0.5rem 0;
-            border-bottom: 1px solid #e9ecef;
-        }
-        .feature-list li:last-child {
-            border-bottom: none;
-        }
-        .badge-featured {
+        .package-card .category-badge {
             position: absolute;
             top: 1rem;
             right: 1rem;
-            padding: 0.5rem 1rem;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 20px;
+            padding: 0.25rem 0.75rem;
+            border-radius: 15px;
             font-size: 0.8rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            background: #e9ecef;
         }
+        .package-card h3 {
+            margin-bottom: 1rem;
+            color: #2c3e50;
+        }
+        .package-card .price {
+            font-size: 1.5rem;
+            color: #3498db;
+            margin-bottom: 1rem;
+        }
+        .package-features {
+            list-style: none;
+            padding: 0;
+            margin-bottom: 1rem;
+        }
+        .package-features li {
+            margin-bottom: 0.5rem;
+            color: #7f8c8d;
+        }
+        .package-features li i {
+            color: #2ecc71;
+            margin-right: 0.5rem;
+        }
+        .btn-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .status-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+        }
+        .status-badge.active { background: #d4edda; color: #155724; }
+        .status-badge.inactive { background: #f8d7da; color: #721c24; }
     </style>
 </head>
 <body>
     <!-- Sidebar -->
-    <div class="sidebar">
-        <div class="sidebar-logo">
-            <img src="../img/logo.png" alt="MSSR Web Logo">
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <h4 class="mb-0">MSSR Web Admin</h4>
         </div>
-        <nav class="nav flex-column">
-            <a class="nav-link" href="dashboard.php">
-                <i class="fas fa-home"></i> Dashboard
-            </a>
-            <a class="nav-link active" href="packages.php">
-                <i class="fas fa-box"></i> Hizmet Paketleri
-            </a>
-            <a class="nav-link" href="quotes.php">
-                <i class="fas fa-quote-right"></i> Teklif İstekleri
-            </a>
-            <a class="nav-link" href="stats.php">
-                <i class="fas fa-chart-line"></i> İstatistikler
-            </a>
-            <a class="nav-link" href="admins.php">
-                <i class="fas fa-users-cog"></i> Yöneticiler
-            </a>
-            <a class="nav-link" href="settings.php">
-                <i class="fas fa-cog"></i> Ayarlar
-            </a>
-            <a class="nav-link text-danger" href="logout.php">
-                <i class="fas fa-sign-out-alt"></i> Çıkış Yap
-            </a>
-        </nav>
-    </div>
+        <ul class="sidebar-menu">
+            <li><a href="dashboard.php"><i class="fas fa-home me-2"></i> Dashboard</a></li>
+            <li><a href="packages.php" class="active"><i class="fas fa-box me-2"></i> Paketler</a></li>
+            <li><a href="quotes.php"><i class="fas fa-quote-right me-2"></i> Teklifler</a></li>
+            <li><a href="logout.php"><i class="fas fa-sign-out-alt me-2"></i> Çıkış</a></li>
+        </ul>
+    </nav>
 
     <!-- Ana İçerik -->
-    <div class="main-content">
-        <!-- Üst Bar -->
-        <div class="top-bar d-flex justify-content-between align-items-center mb-4">
-            <h1 class="h3 mb-0"><?php echo $page_title; ?></h1>
-            <a href="package_edit.php" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Yeni Paket Ekle
-            </a>
-        </div>
-
-        <?php if (isset($_GET['success'])): ?>
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <?php
-                switch ($_GET['success']) {
-                    case 'deleted':
-                        echo 'Paket başarıyla silindi!';
-                        break;
-                    case 'updated':
-                        echo 'Paket durumu başarıyla güncellendi!';
-                        break;
-                    case 'featured':
-                        echo 'Öne çıkan paket başarıyla güncellendi!';
-                        break;
-                }
-                ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
+    <main class="main-content">
+        <div class="container-fluid">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>Paket Yönetimi</h1>
+                <a href="package_edit.php" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i> Yeni Paket
+                </a>
             </div>
-        <?php endif; ?>
 
-        <?php if (isset($error)): ?>
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <?php echo $error; ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
-            </div>
-        <?php endif; ?>
+            <?php if ($success_message): ?>
+                <div class="alert alert-success" role="alert">
+                    <?php echo escape_html($success_message); ?>
+                </div>
+            <?php endif; ?>
 
-        <!-- Paketler -->
-        <?php
-        $current_type = '';
-        foreach ($packages as $package):
-            if ($package['service_type'] !== $current_type):
-                if ($current_type !== '') echo '</div>'; // Önceki row'u kapat
-                $current_type = $package['service_type'];
-                $type_titles = [
-                    'web_design' => 'Web Tasarım Paketleri',
-                    'web_development' => 'Web Geliştirme Paketleri',
-                    'seo' => 'SEO Paketleri'
-                ];
-        ?>
-            <h2 class="h4 mb-4 mt-5"><?php echo $type_titles[$current_type]; ?></h2>
-            <div class="row g-4">
-        <?php endif; ?>
-                
-                <div class="col-md-4">
-                    <div class="package-card position-relative">
-                        <?php if ($package['is_featured']): ?>
-                            <div class="badge-featured">
-                                <i class="fas fa-star"></i> Öne Çıkan
+            <?php if ($error_message): ?>
+                <div class="alert alert-danger" role="alert">
+                    <?php echo escape_html($error_message); ?>
+                </div>
+            <?php endif; ?>
+
+            <div class="row">
+                <?php foreach ($packages as $package): ?>
+                    <div class="col-md-4">
+                        <div class="package-card <?php echo $package['is_active'] ? '' : 'inactive'; ?>">
+                            <span class="category-badge">
+                                <?php echo escape_html($categories[$package['category']] ?? $package['category']); ?>
+                            </span>
+                            
+                            <h3><?php echo escape_html($package['name']); ?></h3>
+                            
+                            <div class="price">
+                                ₺<?php echo number_format($package['price'], 2, ',', '.'); ?>
                             </div>
-                        <?php endif; ?>
-                        
-                        <div class="package-header">
-                            <h3 class="h5 mb-3"><?php echo escape($package['package_name']); ?></h3>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <h4 class="h2 mb-0"><?php echo number_format($package['price'], 2); ?> ₺</h4>
-                                <span class="badge bg-<?php echo $package['is_active'] ? 'success' : 'danger'; ?>">
+                            
+                            <?php if ($package['features']): ?>
+                                <ul class="package-features">
+                                    <?php foreach (json_decode($package['features'], true) as $feature): ?>
+                                        <li>
+                                            <i class="fas fa-check"></i>
+                                            <?php echo escape_html($feature); ?>
+                                        </li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            <?php endif; ?>
+
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <span class="status-badge <?php echo $package['is_active'] ? 'active' : 'inactive'; ?>">
                                     <?php echo $package['is_active'] ? 'Aktif' : 'Pasif'; ?>
                                 </span>
+                                
+                                <div class="btn-group">
+                                    <a href="package_edit.php?id=<?php echo $package['id']; ?>" 
+                                       class="btn btn-sm btn-primary">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    
+                                    <form method="POST" class="d-inline" onsubmit="return confirm('Bu paketi silmek istediğinizden emin misiniz?');">
+                                        <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
+                                        <input type="hidden" name="package_id" value="<?php echo $package['id']; ?>">
+                                        <button type="submit" name="delete" class="btn btn-sm btn-danger">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                    
+                                    <form method="POST" class="d-inline">
+                                        <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
+                                        <input type="hidden" name="package_id" value="<?php echo $package['id']; ?>">
+                                        <button type="submit" name="toggle_status" class="btn btn-sm btn-warning">
+                                            <i class="fas fa-power-off"></i>
+                                        </button>
+                                    </form>
+                                </div>
                             </div>
-                        </div>
-                        
-                        <div class="package-body">
-                            <p class="text-muted mb-4"><?php echo escape($package['description']); ?></p>
-                            <ul class="feature-list">
-                                <?php foreach (json_decode($package['features']) as $feature): ?>
-                                    <li><i class="fas fa-check text-success me-2"></i><?php echo escape($feature); ?></li>
-                                <?php endforeach; ?>
-                            </ul>
-                        </div>
-                        
-                        <div class="package-footer">
-                            <div class="btn-group w-100">
-                                <a href="package_edit.php?id=<?php echo $package['id']; ?>" 
-                                   class="btn btn-outline-primary">
-                                    <i class="fas fa-edit"></i> Düzenle
-                                </a>
-                                <form method="POST" class="d-inline" onsubmit="return confirm('Bu paketi silmek istediğinizden emin misiniz?');">
-                                    <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
-                                    <input type="hidden" name="id" value="<?php echo $package['id']; ?>">
-                                    <button type="submit" name="delete" class="btn btn-outline-danger">
-                                        <i class="fas fa-trash-alt"></i> Sil
-                                    </button>
-                                </form>
-                            </div>
-                            <div class="btn-group w-100 mt-2">
-                                <form method="POST" class="d-inline">
-                                    <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
-                                    <input type="hidden" name="id" value="<?php echo $package['id']; ?>">
-                                    <button type="submit" name="toggle_status" 
-                                            class="btn btn-outline-<?php echo $package['is_active'] ? 'warning' : 'success'; ?>">
-                                        <i class="fas fa-<?php echo $package['is_active'] ? 'times' : 'check'; ?>"></i>
-                                        <?php echo $package['is_active'] ? 'Pasif Yap' : 'Aktif Yap'; ?>
-                                    </button>
-                                </form>
-                                <form method="POST" class="d-inline">
-                                    <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
-                                    <input type="hidden" name="id" value="<?php echo $package['id']; ?>">
-                                    <button type="submit" name="toggle_featured" 
-                                            class="btn btn-outline-primary"
-                                            <?php echo $package['is_featured'] ? 'disabled' : ''; ?>>
-                                        <i class="fas fa-star"></i>
-                                        <?php echo $package['is_featured'] ? 'Öne Çıkarıldı' : 'Öne Çıkar'; ?>
-                                    </button>
-                                </form>
-                            </div>
+
+                            <?php if ($package['description']): ?>
+                                <div class="text-muted small">
+                                    <?php echo escape_html($package['description']); ?>
+                                </div>
+                            <?php endif; ?>
                         </div>
                     </div>
-                </div>
-        <?php endforeach; ?>
-        <?php if ($current_type !== '') echo '</div>'; // Son row'u kapat ?>
-    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>

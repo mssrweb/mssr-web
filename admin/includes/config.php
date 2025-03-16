@@ -10,14 +10,70 @@ session_start();
 define('DB_HOST', 'localhost');
 define('DB_USER', 'root');
 define('DB_PASS', '');
-define('DB_NAME', 'mssr_admin');
+define('DB_NAME', 'mssr_web');
 
-// Veritabanı bağlantısı
+// PDO bağlantısı oluştur
 try {
-    $db = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8", DB_USER, DB_PASS);
-    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $pdo = new PDO(
+        "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4",
+        DB_USER,
+        DB_PASS,
+        [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES => false
+        ]
+    );
 } catch(PDOException $e) {
     die("Veritabanı bağlantı hatası: " . $e->getMessage());
+}
+
+// Temel URL ve yollar
+define('BASE_URL', '/mssr-web/admin');
+define('ADMIN_PATH', __DIR__ . '/..');
+
+// CSRF token fonksiyonları
+function generate_csrf_token() {
+    if (!isset($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+function verify_csrf_token($token) {
+    if (!isset($_SESSION['csrf_token']) || $token !== $_SESSION['csrf_token']) {
+        return false;
+    }
+    return true;
+}
+
+// Oturum kontrolü
+function check_admin_session() {
+    if (!isset($_SESSION['admin_id'])) {
+        header('Location: ' . BASE_URL . '/login.php');
+        exit();
+    }
+}
+
+// XSS koruma fonksiyonu
+function escape_html($text) {
+    return htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
+}
+
+// Aktivite log fonksiyonu
+function log_activity($admin_id, $action, $details = '') {
+    global $pdo;
+    
+    try {
+        $stmt = $pdo->prepare("
+            INSERT INTO activity_logs (admin_id, action, details, created_at)
+            VALUES (?, ?, ?, NOW())
+        ");
+        
+        $stmt->execute([$admin_id, $action, $details]);
+    } catch(PDOException $e) {
+        error_log("Aktivite log hatası: " . $e->getMessage());
+    }
 }
 
 // Güvenlik fonksiyonları
@@ -81,23 +137,23 @@ function getIP() {
 
 // Giriş denemelerini kontrol et
 function checkLoginAttempts($ip) {
-    global $db;
-    $stmt = $db->prepare("SELECT COUNT(*) as attempts, MAX(attempt_time) as last_attempt FROM login_attempts WHERE ip_address = ? AND attempt_time > DATE_SUB(NOW(), INTERVAL 15 MINUTE)");
+    global $pdo;
+    $stmt = $pdo->prepare("SELECT COUNT(*) as attempts, MAX(attempt_time) as last_attempt FROM login_attempts WHERE ip_address = ? AND attempt_time > DATE_SUB(NOW(), INTERVAL 15 MINUTE)");
     $stmt->execute([$ip]);
     return $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
 // Giriş denemesi kaydet
 function logLoginAttempt($ip, $success) {
-    global $db;
-    $stmt = $db->prepare("INSERT INTO login_attempts (ip_address, success) VALUES (?, ?)");
+    global $pdo;
+    $stmt = $pdo->prepare("INSERT INTO login_attempts (ip_address, success) VALUES (?, ?)");
     $stmt->execute([$ip, $success]);
 }
 
 // Aktivite logla
 function logActivity($admin_id, $action, $details = '') {
-    global $db;
-    $stmt = $db->prepare("INSERT INTO admin_activity_log (admin_id, action, details, ip_address) VALUES (?, ?, ?, ?)");
+    global $pdo;
+    $stmt = $pdo->prepare("INSERT INTO admin_activity_log (admin_id, action, details, ip_address) VALUES (?, ?, ?, ?)");
     $stmt->execute([$admin_id, $action, $details, getIP()]);
 }
 ?> 

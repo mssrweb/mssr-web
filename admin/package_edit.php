@@ -1,129 +1,141 @@
 <?php
 require_once 'includes/config.php';
-checkSession();
+check_admin_session();
 
-// Sayfa başlığı
-$page_title = "Paket Düzenle";
-$is_edit = false;
+$error_message = '';
+$success_message = '';
 $package = [
-    'id' => '',
-    'service_type' => '',
-    'package_name' => '',
-    'price' => '',
+    'id' => null,
+    'name' => '',
     'description' => '',
-    'features' => '[]',
-    'is_featured' => false,
+    'price' => '',
+    'features' => [],
+    'category' => '',
     'is_active' => true
 ];
 
-// Paket ID'si varsa mevcut paketi getir
+// Düzenleme modunda ise mevcut paketi getir
 if (isset($_GET['id'])) {
-    $id = (int)$_GET['id'];
     try {
-        $stmt = $db->prepare("SELECT * FROM service_packages WHERE id = ?");
-        $stmt->execute([$id]);
-        if ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $package = $row;
-            $is_edit = true;
-            $page_title = "Paket Düzenle: " . $package['package_name'];
+        $stmt = $pdo->prepare("SELECT * FROM service_packages WHERE id = ?");
+        $stmt->execute([$_GET['id']]);
+        $result = $stmt->fetch();
+        
+        if ($result) {
+            $package = array_merge($package, $result);
+            $package['features'] = json_decode($package['features'], true) ?? [];
+        } else {
+            header('Location: packages.php');
+            exit();
         }
-    } catch (PDOException $e) {
-        $error = 'Paket bilgileri getirilirken bir hata oluştu!';
+    } catch(PDOException $e) {
+        $error_message = 'Paket bilgileri alınırken bir hata oluştu.';
+        error_log("Paket getirme hatası: " . $e->getMessage());
     }
 }
 
 // Form gönderildiğinde
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!isset($_POST['csrf_token']) || !validateToken($_POST['csrf_token'])) {
-        die('CSRF token doğrulama hatası!');
-    }
-
-    // Form verilerini al
-    $package['service_type'] = clean($_POST['service_type']);
-    $package['package_name'] = clean($_POST['package_name']);
-    $package['price'] = (float)$_POST['price'];
-    $package['description'] = clean($_POST['description']);
-    $package['features'] = json_encode(array_map('clean', explode("\n", trim($_POST['features']))));
-    $package['is_featured'] = isset($_POST['is_featured']);
-    $package['is_active'] = isset($_POST['is_active']);
-
-    // Validasyon
-    $errors = [];
-    if (empty($package['package_name'])) {
-        $errors[] = 'Paket adı boş bırakılamaz!';
-    }
-    if ($package['price'] <= 0) {
-        $errors[] = 'Geçerli bir fiyat giriniz!';
-    }
-    if (empty($package['description'])) {
-        $errors[] = 'Paket açıklaması boş bırakılamaz!';
-    }
-    if (empty($_POST['features'])) {
-        $errors[] = 'En az bir özellik giriniz!';
-    }
-
-    // Hata yoksa kaydet
-    if (empty($errors)) {
-        try {
-            if ($is_edit) {
-                // Mevcut paketi güncelle
-                $stmt = $db->prepare("
-                    UPDATE service_packages 
-                    SET service_type = ?, package_name = ?, price = ?, description = ?, 
-                        features = ?, is_featured = ?, is_active = ?
-                    WHERE id = ?
-                ");
-                $stmt->execute([
-                    $package['service_type'],
-                    $package['package_name'],
-                    $package['price'],
-                    $package['description'],
-                    $package['features'],
-                    $package['is_featured'],
-                    $package['is_active'],
-                    $package['id']
-                ]);
-
-                logActivity($_SESSION['admin_id'], 'package_update', "Paket güncellendi (ID: {$package['id']})");
-            } else {
-                // Yeni paket ekle
-                $stmt = $db->prepare("
-                    INSERT INTO service_packages 
-                    (service_type, package_name, price, description, features, is_featured, is_active)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                ");
-                $stmt->execute([
-                    $package['service_type'],
-                    $package['package_name'],
-                    $package['price'],
-                    $package['description'],
-                    $package['features'],
-                    $package['is_featured'],
-                    $package['is_active']
-                ]);
-
-                $package['id'] = $db->lastInsertId();
-                logActivity($_SESSION['admin_id'], 'package_create', "Yeni paket oluşturuldu (ID: {$package['id']})");
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        $error_message = 'Güvenlik doğrulaması başarısız!';
+    } else {
+        // Form verilerini al
+        $package['name'] = $_POST['name'] ?? '';
+        $package['description'] = $_POST['description'] ?? '';
+        $package['price'] = str_replace(',', '.', $_POST['price'] ?? '');
+        $package['category'] = $_POST['category'] ?? '';
+        $package['is_active'] = isset($_POST['is_active']);
+        $package['features'] = array_filter(array_map('trim', explode("\n", $_POST['features'] ?? '')));
+        
+        // Validasyon
+        $errors = [];
+        if (empty($package['name'])) {
+            $errors[] = 'Paket adı gereklidir.';
+        }
+        if (!is_numeric($package['price']) || $package['price'] <= 0) {
+            $errors[] = 'Geçerli bir fiyat giriniz.';
+        }
+        if (empty($package['category'])) {
+            $errors[] = 'Kategori seçiniz.';
+        }
+        if (empty($package['features'])) {
+            $errors[] = 'En az bir özellik ekleyiniz.';
+        }
+        
+        if (empty($errors)) {
+            try {
+                if ($package['id']) {
+                    // Güncelleme
+                    $stmt = $pdo->prepare("
+                        UPDATE service_packages 
+                        SET name = ?, description = ?, price = ?, features = ?, category = ?, is_active = ?
+                        WHERE id = ?
+                    ");
+                    $stmt->execute([
+                        $package['name'],
+                        $package['description'],
+                        $package['price'],
+                        json_encode($package['features'], JSON_UNESCAPED_UNICODE),
+                        $package['category'],
+                        $package['is_active'],
+                        $package['id']
+                    ]);
+                    
+                    log_activity($_SESSION['admin_id'], 'package_update', "Paket güncellendi: {$package['name']}");
+                    $success_message = 'Paket başarıyla güncellendi.';
+                    
+                } else {
+                    // Yeni ekle
+                    $stmt = $pdo->prepare("
+                        INSERT INTO service_packages (name, description, price, features, category, is_active)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    ");
+                    $stmt->execute([
+                        $package['name'],
+                        $package['description'],
+                        $package['price'],
+                        json_encode($package['features'], JSON_UNESCAPED_UNICODE),
+                        $package['category'],
+                        $package['is_active']
+                    ]);
+                    
+                    log_activity($_SESSION['admin_id'], 'package_create', "Yeni paket oluşturuldu: {$package['name']}");
+                    $success_message = 'Paket başarıyla oluşturuldu.';
+                    
+                    // Formu temizle
+                    $package = [
+                        'id' => null,
+                        'name' => '',
+                        'description' => '',
+                        'price' => '',
+                        'features' => [],
+                        'category' => '',
+                        'is_active' => true
+                    ];
+                }
+            } catch(PDOException $e) {
+                $error_message = 'Paket kaydedilirken bir hata oluştu.';
+                error_log("Paket kaydetme hatası: " . $e->getMessage());
             }
-
-            // Başarılı mesajıyla listele sayfasına yönlendir
-            header('Location: packages.php?success=' . ($is_edit ? 'updated' : 'created'));
-            exit();
-        } catch (PDOException $e) {
-            $error = 'Paket kaydedilirken bir hata oluştu!';
+        } else {
+            $error_message = implode('<br>', $errors);
         }
     }
 }
 
-// CSRF token
-$csrf_token = generateToken();
+// Kategori listesi
+$categories = [
+    'web_design' => 'Web Tasarım',
+    'web_development' => 'Web Geliştirme',
+    'seo' => 'SEO'
+];
 ?>
 <!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $page_title; ?> - MSSR Web Admin</title>
+    <title><?php echo $package['id'] ? 'Paketi Düzenle' : 'Yeni Paket'; ?> - MSSR Web Admin</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -135,190 +147,154 @@ $csrf_token = generateToken();
             background-color: #f8f9fa;
         }
         .sidebar {
+            width: var(--sidebar-width);
             position: fixed;
             top: 0;
             left: 0;
-            width: var(--sidebar-width);
             height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #2c3e50;
             padding: 1rem;
-            z-index: 1000;
+            color: white;
         }
-        .sidebar-logo {
-            text-align: center;
-            padding: 1rem 0;
-            margin-bottom: 2rem;
+        .sidebar-header {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 1rem;
         }
-        .sidebar-logo img {
-            max-width: 150px;
+        .sidebar-menu {
+            list-style: none;
+            padding: 0;
         }
-        .nav-link {
-            color: rgba(255, 255, 255, 0.8);
-            padding: 0.8rem 1rem;
+        .sidebar-menu li {
             margin-bottom: 0.5rem;
+        }
+        .sidebar-menu a {
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            display: block;
+            padding: 0.75rem 1rem;
             border-radius: 5px;
             transition: all 0.3s ease;
         }
-        .nav-link:hover, .nav-link.active {
+        .sidebar-menu a:hover {
+            background: rgba(255,255,255,0.1);
             color: white;
-            background: rgba(255, 255, 255, 0.1);
         }
-        .nav-link i {
-            width: 25px;
+        .sidebar-menu a.active {
+            background: #3498db;
+            color: white;
         }
         .main-content {
             margin-left: var(--sidebar-width);
             padding: 2rem;
         }
-        .top-bar {
-            background: white;
-            padding: 1rem 2rem;
-            margin: -2rem -2rem 2rem -2rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
         .form-card {
             background: white;
             border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             padding: 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
     </style>
 </head>
 <body>
     <!-- Sidebar -->
-    <div class="sidebar">
-        <div class="sidebar-logo">
-            <img src="../img/logo.png" alt="MSSR Web Logo">
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <h4 class="mb-0">MSSR Web Admin</h4>
         </div>
-        <nav class="nav flex-column">
-            <a class="nav-link" href="dashboard.php">
-                <i class="fas fa-home"></i> Dashboard
-            </a>
-            <a class="nav-link active" href="packages.php">
-                <i class="fas fa-box"></i> Hizmet Paketleri
-            </a>
-            <a class="nav-link" href="quotes.php">
-                <i class="fas fa-quote-right"></i> Teklif İstekleri
-            </a>
-            <a class="nav-link" href="stats.php">
-                <i class="fas fa-chart-line"></i> İstatistikler
-            </a>
-            <a class="nav-link" href="admins.php">
-                <i class="fas fa-users-cog"></i> Yöneticiler
-            </a>
-            <a class="nav-link" href="settings.php">
-                <i class="fas fa-cog"></i> Ayarlar
-            </a>
-            <a class="nav-link text-danger" href="logout.php">
-                <i class="fas fa-sign-out-alt"></i> Çıkış Yap
-            </a>
-        </nav>
-    </div>
+        <ul class="sidebar-menu">
+            <li><a href="dashboard.php"><i class="fas fa-home me-2"></i> Dashboard</a></li>
+            <li><a href="packages.php" class="active"><i class="fas fa-box me-2"></i> Paketler</a></li>
+            <li><a href="quotes.php"><i class="fas fa-quote-right me-2"></i> Teklifler</a></li>
+            <li><a href="logout.php"><i class="fas fa-sign-out-alt me-2"></i> Çıkış</a></li>
+        </ul>
+    </nav>
 
     <!-- Ana İçerik -->
-    <div class="main-content">
-        <!-- Üst Bar -->
-        <div class="top-bar d-flex justify-content-between align-items-center mb-4">
-            <h1 class="h3 mb-0"><?php echo $page_title; ?></h1>
-            <a href="packages.php" class="btn btn-outline-primary">
-                <i class="fas fa-arrow-left"></i> Paketlere Dön
-            </a>
-        </div>
-
-        <?php if (isset($error)): ?>
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <?php echo $error; ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
+    <main class="main-content">
+        <div class="container-fluid">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1><?php echo $package['id'] ? 'Paketi Düzenle' : 'Yeni Paket'; ?></h1>
+                <a href="packages.php" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-2"></i> Geri Dön
+                </a>
             </div>
-        <?php endif; ?>
 
-        <?php if (!empty($errors)): ?>
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <ul class="mb-0">
-                    <?php foreach ($errors as $err): ?>
-                        <li><?php echo $err; ?></li>
-                    <?php endforeach; ?>
-                </ul>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
-            </div>
-        <?php endif; ?>
+            <?php if ($success_message): ?>
+                <div class="alert alert-success" role="alert">
+                    <?php echo escape_html($success_message); ?>
+                </div>
+            <?php endif; ?>
 
-        <div class="form-card">
-            <form method="POST" action="<?php echo $_SERVER['PHP_SELF'] . ($is_edit ? "?id={$package['id']}" : ''); ?>">
-                <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
+            <?php if ($error_message): ?>
+                <div class="alert alert-danger" role="alert">
+                    <?php echo escape_html($error_message); ?>
+                </div>
+            <?php endif; ?>
 
-                <div class="row g-4">
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="service_type" class="form-label">Hizmet Türü</label>
-                            <select class="form-select" id="service_type" name="service_type" required>
-                                <option value="web_design" <?php echo $package['service_type'] === 'web_design' ? 'selected' : ''; ?>>
-                                    Web Tasarım
-                                </option>
-                                <option value="web_development" <?php echo $package['service_type'] === 'web_development' ? 'selected' : ''; ?>>
-                                    Web Geliştirme
-                                </option>
-                                <option value="seo" <?php echo $package['service_type'] === 'seo' ? 'selected' : ''; ?>>
-                                    SEO
-                                </option>
+            <div class="form-card">
+                <form method="POST" action="<?php echo escape_html($_SERVER['PHP_SELF'] . ($package['id'] ? "?id={$package['id']}" : '')); ?>">
+                    <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="name" class="form-label">Paket Adı</label>
+                            <input type="text" class="form-control" id="name" name="name" 
+                                   value="<?php echo escape_html($package['name']); ?>" required>
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <label for="price" class="form-label">Fiyat (₺)</label>
+                            <input type="text" class="form-control" id="price" name="price" 
+                                   value="<?php echo escape_html($package['price']); ?>" required>
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <label for="category" class="form-label">Kategori</label>
+                            <select class="form-select" id="category" name="category" required>
+                                <option value="">Seçiniz</option>
+                                <?php foreach ($categories as $value => $label): ?>
+                                    <option value="<?php echo $value; ?>" 
+                                            <?php echo $package['category'] === $value ? 'selected' : ''; ?>>
+                                        <?php echo escape_html($label); ?>
+                                    </option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
+                    </div>
 
-                        <div class="mb-3">
-                            <label for="package_name" class="form-label">Paket Adı</label>
-                            <input type="text" class="form-control" id="package_name" name="package_name" 
-                                   value="<?php echo escape($package['package_name']); ?>" required>
-                        </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Açıklama</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"><?php 
+                            echo escape_html($package['description']); 
+                        ?></textarea>
+                    </div>
 
-                        <div class="mb-3">
-                            <label for="price" class="form-label">Fiyat (₺)</label>
-                            <input type="number" class="form-control" id="price" name="price" 
-                                   value="<?php echo $package['price']; ?>" step="0.01" min="0" required>
-                        </div>
+                    <div class="mb-3">
+                        <label for="features" class="form-label">Özellikler</label>
+                        <small class="text-muted d-block mb-2">Her satıra bir özellik yazın</small>
+                        <textarea class="form-control" id="features" name="features" rows="5" required><?php 
+                            echo escape_html(implode("\n", $package['features'])); 
+                        ?></textarea>
+                    </div>
 
-                        <div class="mb-3">
-                            <label for="description" class="form-label">Açıklama</label>
-                            <textarea class="form-control" id="description" name="description" 
-                                      rows="3" required><?php echo escape($package['description']); ?></textarea>
+                    <div class="mb-4">
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="is_active" name="is_active"
+                                   <?php echo $package['is_active'] ? 'checked' : ''; ?>>
+                            <label class="form-check-label" for="is_active">Aktif</label>
                         </div>
                     </div>
 
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="features" class="form-label">Özellikler (Her satıra bir özellik)</label>
-                            <textarea class="form-control" id="features" name="features" rows="10" required><?php 
-                                $features = json_decode($package['features']);
-                                echo escape(implode("\n", $features));
-                            ?></textarea>
-                        </div>
-
-                        <div class="mb-3">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="is_featured" name="is_featured"
-                                       <?php echo $package['is_featured'] ? 'checked' : ''; ?>>
-                                <label class="form-check-label" for="is_featured">Öne Çıkan Paket</label>
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="is_active" name="is_active"
-                                       <?php echo $package['is_active'] ? 'checked' : ''; ?>>
-                                <label class="form-check-label" for="is_active">Aktif</label>
-                            </div>
-                        </div>
+                    <div class="d-flex justify-content-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i> Kaydet
+                        </button>
                     </div>
-                </div>
-
-                <div class="text-end mt-4">
-                    <a href="packages.php" class="btn btn-outline-secondary me-2">İptal</a>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save"></i> Kaydet
-                    </button>
-                </div>
-            </form>
+                </form>
+            </div>
         </div>
-    </div>
+    </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
