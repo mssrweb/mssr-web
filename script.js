@@ -1,25 +1,27 @@
 // JavaScript kodları buraya eklenecek 
 
-// Mobil menü işlevselliği
+// Temel işlevsellik
 document.addEventListener('DOMContentLoaded', function() {
-    const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+    // Mobil menü işlevselliği
+    const mobileMenuBtn = document.querySelector('.mobile-menu-toggle');
     const navLinks = document.querySelector('.nav-links');
 
-    // Menü açma/kapama
-    mobileMenuBtn.addEventListener('click', () => {
-        navLinks.classList.toggle('active');
-        mobileMenuBtn.setAttribute('aria-expanded', 
-            mobileMenuBtn.getAttribute('aria-expanded') === 'true' ? 'false' : 'true'
-        );
-    });
+    if (mobileMenuBtn && navLinks) {
+        mobileMenuBtn.addEventListener('click', () => {
+            navLinks.classList.toggle('active');
+            mobileMenuBtn.setAttribute('aria-expanded', 
+                mobileMenuBtn.getAttribute('aria-expanded') === 'true' ? 'false' : 'true'
+            );
+        });
 
-    // Menü dışı tıklamalarda menüyü kapat
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('.navbar')) {
-            navLinks.classList.remove('active');
-            mobileMenuBtn.setAttribute('aria-expanded', 'false');
-        }
-    });
+        // Menü dışı tıklamalarda menüyü kapat
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.main-nav')) {
+                navLinks.classList.remove('active');
+                mobileMenuBtn.setAttribute('aria-expanded', 'false');
+            }
+        });
+    }
 
     // Sayfa kaydırma animasyonu
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
@@ -32,10 +34,54 @@ document.addEventListener('DOMContentLoaded', function() {
                     block: 'start'
                 });
                 // Mobil menüyü kapat
-                navLinks.classList.remove('active');
-                mobileMenuBtn.setAttribute('aria-expanded', 'false');
+                if (navLinks) {
+                    navLinks.classList.remove('active');
+                    mobileMenuBtn.setAttribute('aria-expanded', 'false');
+                }
             }
         });
+    });
+
+    // WhatsApp butonları için UTM parametreleri ekle
+    const whatsappButtons = document.querySelectorAll('a[href^="https://wa.me/"]');
+    whatsappButtons.forEach(button => {
+        const currentHref = button.getAttribute('href');
+        const utm = '?utm_source=website&utm_medium=button&utm_campaign=contact';
+        button.setAttribute('href', `${currentHref}${utm}`);
+        
+        // Tıklama analitiği
+        button.addEventListener('click', () => {
+            if (typeof gtag !== 'undefined') {
+                gtag('event', 'whatsapp_click', {
+                    'event_category': 'Contact',
+                    'event_label': button.closest('.pricing-card') ? 
+                        button.closest('.pricing-card').querySelector('h3').textContent : 
+                        'Direct Contact'
+                });
+            }
+        });
+    });
+
+    // Sayfa kaydırma animasyonları için Intersection Observer
+    const sections = document.querySelectorAll('section');
+    
+    const observerOptions = {
+        root: null,
+        threshold: 0.1,
+        rootMargin: '0px'
+    };
+
+    const sectionObserver = new IntersectionObserver((entries, observer) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+                observer.unobserve(entry.target);
+            }
+        });
+    }, observerOptions);
+
+    sections.forEach(section => {
+        sectionObserver.observe(section);
     });
 
     // Yukarı Çık butonu işlevselliği
@@ -56,33 +102,6 @@ document.addEventListener('DOMContentLoaded', function() {
             top: 0,
             behavior: 'smooth'
         });
-    });
-
-    // Sayfa kaydırma animasyonları için Intersection Observer
-    const sections = document.querySelectorAll('section');
-    
-    const observerOptions = {
-        root: null,
-        threshold: 0.1,
-        rootMargin: '0px'
-    };
-
-    const sectionObserver = new IntersectionObserver((entries, observer) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.style.opacity = '1';
-                entry.target.style.transform = 'translateY(0)';
-                observer.unobserve(entry.target);
-            }
-        });
-    }, observerOptions);
-
-    // Her bölüme başlangıç stillerini ve gözlemciyi ekle
-    sections.forEach(section => {
-        section.style.opacity = '0';
-        section.style.transform = 'translateY(50px)';
-        section.style.transition = 'all 0.6s ease-out';
-        sectionObserver.observe(section);
     });
 
     // Form işlevselliği
