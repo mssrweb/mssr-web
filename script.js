@@ -48,18 +48,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const currentHref = button.getAttribute('href');
         const utm = '?utm_source=website&utm_medium=button&utm_campaign=contact';
         button.setAttribute('href', `${currentHref}${utm}`);
-        
-        // Tıklama analitiği
-        button.addEventListener('click', () => {
-            if (typeof gtag !== 'undefined') {
-                gtag('event', 'whatsapp_click', {
-                    'event_category': 'Contact',
-                    'event_label': button.closest('.pricing-card') ? 
-                        button.closest('.pricing-card').querySelector('h3').textContent : 
-                        'Direct Contact'
-                });
-            }
-        });
     });
 
     // Sayfa kaydırma animasyonları için Intersection Observer
@@ -84,662 +72,117 @@ document.addEventListener('DOMContentLoaded', function() {
         sectionObserver.observe(section);
     });
 
-    // Yukarı Çık butonu işlevselliği
-    const backToTopButton = document.getElementById('back-to-top');
-    
-    // Sayfa scroll olduğunda butonu göster/gizle
-    window.addEventListener('scroll', () => {
-        if (window.scrollY > 300) {
-            backToTopButton.classList.add('visible');
-        } else {
-            backToTopButton.classList.remove('visible');
-        }
-    });
+    // Çerez yönetimi
+    const cookieConsent = document.querySelector('.cookie-consent');
+    const acceptButton = document.querySelector('.cookie-button.accept');
+    const rejectButton = document.querySelector('.cookie-button.reject');
+    const manageButton = document.querySelector('.cookie-button.manage');
+    const closeButton = document.querySelector('.cookie-button.close');
+    const cookieModal = document.querySelector('.cookie-modal');
+    const savePreferencesButton = document.querySelector('.cookie-save-button');
 
-    // Butona tıklandığında yukarı çık
-    backToTopButton.addEventListener('click', () => {
-        window.scrollTo({
-            top: 0,
-            behavior: 'smooth'
+    // Çerez tercihlerini kontrol et
+    const checkCookiePreferences = () => {
+        const preferences = localStorage.getItem('cookiePreferences');
+        if (!preferences) {
+            cookieConsent.classList.add('show');
+        }
+    };
+
+    // Çerez tercihlerini kaydet
+    const saveCookiePreference = (accepted) => {
+        const preferences = {
+            accepted: accepted,
+            timestamp: new Date().toISOString()
+        };
+        localStorage.setItem('cookiePreferences', JSON.stringify(preferences));
+        cookieConsent.classList.remove('show');
+    };
+
+    // Event listeners
+    if (acceptButton) {
+        acceptButton.addEventListener('click', () => saveCookiePreference(true));
+    }
+
+    if (rejectButton) {
+        rejectButton.addEventListener('click', () => saveCookiePreference(false));
+    }
+
+    if (manageButton) {
+        manageButton.addEventListener('click', () => {
+            cookieModal.classList.add('show');
         });
-    });
+    }
+
+    if (closeButton) {
+        closeButton.addEventListener('click', () => {
+            cookieConsent.classList.remove('show');
+        });
+    }
+
+    // Çerez tercihlerini kontrol et
+    checkCookiePreferences();
 
     // Form işlevselliği
-    const contactForm = document.getElementById('contact-form');
-    
-    if (contactForm) {
-        // Form doğrulama fonksiyonları
-        const validators = {
-            email: (value) => {
-                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                return {
-                    isValid: emailRegex.test(value),
-                    message: 'Geçerli bir e-posta adresi giriniz'
-                };
-            },
-            name: (value) => {
-                return {
-                    isValid: value.length >= 2 && value.length <= 50,
-                    message: 'Ad en az 2, en fazla 50 karakter olmalıdır'
-                };
-            },
-            message: (value) => {
-                return {
-                    isValid: value.length >= 10 && value.length <= 500,
-                    message: 'Mesaj en az 10, en fazla 500 karakter olmalıdır'
-                };
-            }
-        };
-
-        // Hata mesajı gösterme fonksiyonu
-        const showError = (input, message) => {
-            // Input elementi veya form grubu yoksa işlemi durdur
-            if (!input) return;
-            
-            const formGroup = input.closest('.form-group');
-            if (!formGroup) return;
-            
-            // Varsa eski hata mesajını temizle
-            const existingError = formGroup.querySelector('.error-message');
-            if (existingError) {
-                existingError.remove();
-            }
-            
-            // Yeni hata mesajı oluştur
-            const errorDiv = document.createElement('div');
-            errorDiv.className = 'error-message';
-            errorDiv.setAttribute('role', 'alert');
-            errorDiv.setAttribute('aria-live', 'polite');
-            errorDiv.textContent = message;
-            
-            // Hata mesajına ID ata
-            const errorId = `error-${input.id || Math.random().toString(36).substr(2, 9)}`;
-            errorDiv.id = errorId;
-            
-            // ARIA attributes
-            input.setAttribute('aria-invalid', 'true');
-            input.setAttribute('aria-describedby', errorId);
-            
-            // Hata mesajını form grubuna ekle
-            formGroup.appendChild(errorDiv);
-            input.classList.add('form-error');
-        };
-
-        // Karakter sayacı oluşturma
-        const messageTextarea = contactForm.querySelector('#message');
-        const charCounter = document.createElement('div');
-        charCounter.className = 'char-counter';
-        charCounter.style.fontSize = '0.8em';
-        charCounter.style.color = '#666';
-        charCounter.style.textAlign = 'right';
-        messageTextarea.parentNode.insertBefore(charCounter, messageTextarea.nextSibling);
-
-        // Karakter sayacı güncellemesi
-        messageTextarea.addEventListener('input', function() {
-            const maxLength = parseInt(this.getAttribute('maxlength'));
-            const remaining = maxLength - this.value.length;
-            charCounter.textContent = `${remaining} karakter kaldı`;
-            
-            // Renk değişimi
-            charCounter.className = 'char-counter';
-            if (remaining < 50) {
-                charCounter.classList.add('danger');
-            } else if (remaining < 100) {
-                charCounter.classList.add('warning');
-            }
-        });
-
-        // Validation icon ekleme
-        contactForm.querySelectorAll('.form-group').forEach(group => {
-            const validationIcon = document.createElement('span');
-            validationIcon.className = 'validation-icon';
-            validationIcon.setAttribute('aria-hidden', 'true'); // Ekran okuyucular için gizle
-            group.appendChild(validationIcon);
-        });
-
-        // Form doğrulama fonksiyonu
-        const validateField = (field) => {
-            const value = field.value.trim();
-            
-            // Zorunlu alan kontrolü
-            if (field.required && !value) {
-                showError(field, 'Bu alan zorunludur');
-                return false;
-            }
-            
-            // Alan özel doğrulamalar
-            if (value && validators[field.name]) {
-                const validation = validators[field.name](value);
-                if (!validation.isValid) {
-                    showError(field, validation.message);
-                    return false;
-                }
-            }
-            
-            return true;
-        };
-
-        // Form alanlarının geçerlilik durumunu güncelleme
-        const updateFieldValidity = (field) => {
-            const isValid = field.checkValidity() && (!validators[field.name] || 
-                validators[field.name](field.value.trim()).isValid);
-            
-            field.classList.toggle('form-error', !isValid);
-            field.setAttribute('aria-invalid', !isValid);
-            
-            // Validation icon güncelleme
-            const validationIcon = field.closest('.form-group')?.querySelector('.validation-icon');
-            if (validationIcon) {
-                validationIcon.style.opacity = field.value.trim() ? '1' : '0';
-                validationIcon.className = `validation-icon ${isValid ? 'valid' : 'invalid'}`;
-                
-                // Alan geçerliyse başarı mesajı ekle
-                if (isValid && field.value.trim()) {
-                    field.setAttribute('aria-describedby', `success-${field.id}`);
-                    let successMessage = field.closest('.form-group').querySelector('.success-message');
-                    if (!successMessage) {
-                        successMessage = document.createElement('span');
-                        successMessage.className = 'success-message';
-                        successMessage.id = `success-${field.id}`;
-                        successMessage.setAttribute('role', 'status');
-                        successMessage.style.position = 'absolute';
-                        successMessage.style.left = '-9999px';
-                        successMessage.textContent = 'Alan doğru dolduruldu';
-                        field.closest('.form-group').appendChild(successMessage);
-                    }
-                }
-            }
-        };
-
-        // Input event listener'ları güncelleme
-        contactForm.querySelectorAll('input, select, textarea').forEach(input => {
-            // Erişilebilirlik için etiketler
-            if (input.id) {
-                const label = contactForm.querySelector(`label[for="${input.id}"]`);
-                if (label) {
-                    if (input.required) {
-                        const requiredSpan = document.createElement('span');
-                        requiredSpan.className = 'required-field';
-                        requiredSpan.setAttribute('aria-hidden', 'true');
-                        requiredSpan.textContent = ' *';
-                        requiredSpan.style.color = '#e74c3c';
-                        label.appendChild(requiredSpan);
-                        
-                        // Ekran okuyucular için açıklama
-                        input.setAttribute('aria-required', 'true');
-                        input.setAttribute('required', 'required');
-                    }
-                }
-            }
-
-            // Blur event listener - alan odaktan çıktığında doğrulama
-            input.addEventListener('blur', function() {
-                if (this.required || this.value.trim()) {
-                    validateField(this);
-                }
-                updateFieldValidity(this);
-            });
-            
-            // Input event listener - alan değiştiğinde doğrulama
-            input.addEventListener('input', function() {
-                const errorDiv = this.closest('.form-group')?.querySelector('.error-message');
-                if (errorDiv) {
-                    errorDiv.remove();
-                    this.removeAttribute('aria-describedby');
-                }
-                
-                if (this.required || this.value.trim()) {
-                    validateField(this);
-                }
-                updateFieldValidity(this);
-            });
-        });
-
-        // Form gönderimi
-        contactForm.addEventListener('submit', async function(e) {
+    const form = document.querySelector('#contact-form');
+    if (form) {
+        form.addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            // Tüm hata mesajlarını temizle
-            this.querySelectorAll('.error-message').forEach(error => error.remove());
-            
-            // Tüm alanları doğrula
-            let hasError = false;
-            const fields = this.querySelectorAll('input[required], select[required], textarea[required]');
-            
-            fields.forEach(field => {
-                if (!validateField(field)) {
-                    hasError = true;
-                }
-                updateFieldValidity(field);
-            });
+            // Form verilerini al
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
 
-            if (hasError) {
-                const firstError = this.querySelector('.form-error');
-                if (firstError) {
-                    firstError.focus();
-                    // Ekran okuyucular için hata bildirimi
-                    const errorAnnouncement = document.createElement('div');
-                    errorAnnouncement.setAttribute('role', 'alert');
-                    errorAnnouncement.setAttribute('aria-live', 'assertive');
-                    errorAnnouncement.style.position = 'absolute';
-                    errorAnnouncement.style.left = '-9999px';
-                    errorAnnouncement.textContent = 'Form hatalar içeriyor. Lütfen tüm zorunlu alanları doldurun.';
-                    this.appendChild(errorAnnouncement);
-                    
-                    // 2 saniye sonra duyuruyu kaldır
-                    setTimeout(() => errorAnnouncement.remove(), 2000);
-                }
-                return;
-            }
-
-            const submitBtn = this.querySelector('button[type="submit"]');
-            if (!submitBtn) return;
-
-            const originalBtnText = submitBtn.innerHTML;
-            
             try {
-                // EmailJS yapılandırmasını kontrol et
-                const config = window.EMAILJS_CONFIG;
-                if (!config) {
-                    throw new Error('EmailJS yapılandırması bulunamadı.');
-                }
-
-                // Gönderme işlemi başladı
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Doğrulanıyor...';
-
-                try {
-                    // reCAPTCHA doğrulaması
-                    const token = await verifyRecaptcha();
-                    
-                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gönderiliyor...';
-
-                    // Form verilerini hazırla
-                    const templateParams = {
-                        from_name: this.querySelector('#name')?.value.trim() || '',
-                        from_email: this.querySelector('#email')?.value.trim() || '',
-                        subject: this.querySelector('#subject')?.value || '',
-                        message: this.querySelector('#message')?.value.trim() || '',
-                        to_name: 'MSSR Web',
-                        reply_to: this.querySelector('#email')?.value.trim() || '',
-                        'g-recaptcha-response': token
-                    };
-
-                    // Dosya varsa ekle
-                    if (currentFile) {
-                        const reader = new FileReader();
-                        templateParams.attachment = await new Promise((resolve, reject) => {
-                            reader.onloadend = () => resolve(reader.result);
-                            reader.onerror = () => reject(new Error('Dosya okunamadı'));
-                            reader.readAsDataURL(currentFile);
-                        });
-                        templateParams.attachment_name = currentFile.name;
-                    }
-
-                    // EmailJS ile gönder
-                    const response = await emailjs.send(
-                        config.SERVICE_ID,
-                        config.TEMPLATE_ID,
-                        templateParams,
-                        config.PUBLIC_KEY
-                    );
-
-                    if (response.status === 200) {
-                        // Başarılı gönderim
-                        submitBtn.innerHTML = '<i class="fas fa-check"></i> Gönderildi!';
-                        submitBtn.style.backgroundColor = '#27ae60';
-                        
-                        // Başarı mesajı
-                        const successMessage = document.createElement('div');
-                        successMessage.className = 'success-message';
-                        successMessage.setAttribute('role', 'alert');
-                        successMessage.setAttribute('aria-live', 'polite');
-                        successMessage.innerHTML = `
-                            <div style="background-color: #27ae60; color: white; padding: 15px; border-radius: 8px; margin-top: 20px; text-align: center;">
-                                <i class="fas fa-check-circle" style="margin-right: 10px;"></i>
-                                Mesajınız başarıyla gönderildi! En kısa sürede size dönüş yapacağız.
-                            </div>
-                        `;
-                        this.appendChild(successMessage);
-                        
-                        // Form verilerini temizle
-                        localStorage.removeItem('formData');
-                        this.reset();
-                        
-                        if (charCounter) {
-                            charCounter.textContent = '1000 karakter kaldı';
-                            charCounter.className = 'char-counter';
-                        }
-                        
-                        // Dosya önizlemeyi temizle
-                        if (filePreview) {
-                            filePreview.innerHTML = '';
-                            currentFile = null;
-                        }
-                        
-                        // 3 saniye sonra başarı mesajını kaldır
-                        setTimeout(() => {
-                            successMessage.remove();
-                            submitBtn.disabled = false;
-                            submitBtn.innerHTML = originalBtnText;
-                            submitBtn.style.backgroundColor = '';
-                        }, 3000);
-                    } else {
-                        throw new Error('E-posta gönderilemedi.');
-                    }
-                } catch (error) {
-                    console.error('Form Gönderim Hatası:', error);
-                    
-                    submitBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Hata!';
-                    submitBtn.style.backgroundColor = '#e74c3c';
-                    
-                    let errorMessage = 'İşlem sırasında bir hata oluştu. ';
-                    if (error.text) {
-                        errorMessage += error.text;
-                    } else if (error.message) {
-                        errorMessage += error.message;
-                    }
-                    errorMessage += ' Lütfen tekrar deneyin.';
-                    
-                    showError(submitBtn, errorMessage);
-                    
-                    // Form verilerini kaydet
-                    try {
-                        const formData = {
-                            name: this.querySelector('#name')?.value.trim(),
-                            email: this.querySelector('#email')?.value.trim(),
-                            subject: this.querySelector('#subject')?.value,
-                            message: this.querySelector('#message')?.value.trim()
-                        };
-                        localStorage.setItem('formData', JSON.stringify(formData));
-                    } catch (e) {
-                        console.error('Form verilerini kaydetme hatası:', e);
-                    }
-                    
-                    // 3 saniye sonra butonu resetle
-                    setTimeout(() => {
-                        submitBtn.disabled = false;
-                        submitBtn.innerHTML = originalBtnText;
-                        submitBtn.style.backgroundColor = '';
-                    }, 3000);
-                }
-            } catch (error) {
-                console.error('Genel hata:', error);
-                showError(submitBtn, 'Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.');
+                // reCAPTCHA doğrulaması
+                const token = await grecaptcha.execute('6LdPWzEpAAAAAFKRv8zCaAuF_7Yc_U9P8K5qCHTY', {action: 'submit'});
                 
-                // Butonu resetle
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = originalBtnText;
-                submitBtn.style.backgroundColor = '';
+                // EmailJS ile e-posta gönder
+                await emailjs.send(
+                    window.EMAILJS_CONFIG.SERVICE_ID,
+                    window.EMAILJS_CONFIG.TEMPLATE_ID,
+                    {
+                        ...data,
+                        'g-recaptcha-response': token
+                    },
+                    window.EMAILJS_CONFIG.PUBLIC_KEY
+                );
+
+                // Başarılı mesajı göster
+                showNotification('Mesajınız başarıyla gönderildi!', 'success');
+                form.reset();
+
+            } catch (error) {
+                console.error('Hata:', error);
+                showNotification('Bir hata oluştu. Lütfen daha sonra tekrar deneyin.', 'error');
             }
         });
-
-        // Sayfa yüklendiğinde kaydedilmiş form verilerini kontrol et
-        const savedFormData = localStorage.getItem('formData');
-        if (savedFormData) {
-            try {
-                const formValues = JSON.parse(savedFormData);
-                Object.entries(formValues).forEach(([key, value]) => {
-                    const input = contactForm.querySelector(`[name="${key}"]`);
-                    if (input) {
-                        input.value = value;
-                    }
-                });
-                
-                // Karakter sayacını güncelle
-                if (formValues.message) {
-                    const remaining = 500 - formValues.message.length;
-                    charCounter.textContent = `${remaining} karakter kaldı`;
-                    charCounter.style.color = remaining < 50 ? '#e74c3c' : '#666';
-                }
-            } catch (error) {
-                console.error('Form verilerini geri yükleme hatası:', error);
-                localStorage.removeItem('formData');
-            }
-        }
-
-        // reCAPTCHA ve form işlemleri için yardımcı fonksiyonlar
-        const formHelpers = {
-            // Form durumunu saklamak için state
-            state: {
-                isSubmitting: false,
-                hasError: false,
-                retryCount: 0,
-                maxRetries: 3
-            },
-
-            // Form durumunu güncelle
-            updateFormState(newState) {
-                this.state = { ...this.state, ...newState };
-                this.updateUI();
-            },
-
-            // UI'ı güncelle
-            updateUI() {
-                const submitBtn = document.querySelector('button[type="submit"]');
-                const formContainer = document.querySelector('.form-container');
-                if (!submitBtn || !formContainer) return;
-
-                // Submit butonunu güncelle
-                submitBtn.disabled = this.state.isSubmitting;
-                submitBtn.setAttribute('aria-busy', this.state.isSubmitting);
-
-                // Hata durumunda retry butonu göster
-                if (this.state.hasError && this.state.retryCount < this.state.maxRetries) {
-                    let retryBtn = formContainer.querySelector('.retry-button');
-                    if (!retryBtn) {
-                        retryBtn = document.createElement('button');
-                        retryBtn.className = 'retry-button';
-                        retryBtn.setAttribute('type', 'button');
-                        retryBtn.setAttribute('aria-label', 'Formu tekrar gönder');
-                        retryBtn.innerHTML = '<i class="fas fa-redo"></i> Tekrar Dene';
-                        retryBtn.style.cssText = `
-                            margin-top: 1rem;
-                            padding: 0.5rem 1rem;
-                            background-color: #e74c3c;
-                            color: white;
-                            border: none;
-                            border-radius: 4px;
-                            cursor: pointer;
-                            transition: all 0.3s ease;
-                        `;
-                        formContainer.appendChild(retryBtn);
-
-                        retryBtn.addEventListener('click', () => {
-                            this.updateFormState({
-                                hasError: false,
-                                isSubmitting: false
-                            });
-                            retryBtn.remove();
-                            document.querySelector('form')?.requestSubmit();
-                        });
-                    }
-                }
-            },
-
-            // Alternatif doğrulama yöntemini göster
-            showAlternativeVerification() {
-                const formContainer = document.querySelector('.form-container');
-                if (!formContainer) return;
-
-                const altVerification = document.createElement('div');
-                altVerification.className = 'alternative-verification';
-                altVerification.innerHTML = `
-                    <div class="alt-verify-content" style="
-                        margin-top: 1rem;
-                        padding: 1rem;
-                        background-color: #f8f9fa;
-                        border-radius: 8px;
-                        border: 1px solid #dee2e6;
-                    ">
-                        <h3 style="margin-bottom: 0.5rem; color: #2c3e50;">Alternatif Doğrulama</h3>
-                        <p style="margin-bottom: 1rem; color: #666;">
-                            reCAPTCHA doğrulaması başarısız oldu. 
-                            E-posta adresinize bir doğrulama kodu göndereceğiz.
-                        </p>
-                        <button type="button" class="send-code-btn" style="
-                            padding: 0.5rem 1rem;
-                            background-color: #3498db;
-                            color: white;
-                            border: none;
-                            border-radius: 4px;
-                            cursor: pointer;
-                        ">
-                            <i class="fas fa-envelope"></i> Doğrulama Kodu Gönder
-                        </button>
-                    </div>
-                `;
-
-                formContainer.appendChild(altVerification);
-
-                // Doğrulama kodu gönderme işlemi
-                const sendCodeBtn = altVerification.querySelector('.send-code-btn');
-                sendCodeBtn?.addEventListener('click', async () => {
-                    try {
-                        sendCodeBtn.disabled = true;
-                        sendCodeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gönderiliyor...';
-                        
-                        // E-posta doğrulama kodu gönderme simülasyonu
-                        await new Promise(resolve => setTimeout(resolve, 2000));
-                        
-                        // Doğrulama kodu girişi
-                        const verificationInput = document.createElement('div');
-                        verificationInput.innerHTML = `
-                            <div style="margin-top: 1rem;">
-                                <input type="text" 
-                                       id="verification-code" 
-                                       placeholder="Doğrulama kodunu giriniz"
-                                       maxlength="6"
-                                       style="
-                                           padding: 0.5rem;
-                                           border: 1px solid #dee2e6;
-                                           border-radius: 4px;
-                                           width: 200px;
-                                       "
-                                       aria-label="Doğrulama kodu"
-                                >
-                                <button type="button" 
-                                        class="verify-code-btn"
-                                        style="
-                                            margin-left: 0.5rem;
-                                            padding: 0.5rem 1rem;
-                                            background-color: #27ae60;
-                                            color: white;
-                                            border: none;
-                                            border-radius: 4px;
-                                            cursor: pointer;
-                                        "
-                                >
-                                    Doğrula
-                                </button>
-                            </div>
-                        `;
-                        
-                        altVerification.querySelector('.alt-verify-content').appendChild(verificationInput);
-                        sendCodeBtn.remove();
-
-                        // Doğrulama kodunu kontrol et
-                        const verifyCodeBtn = verificationInput.querySelector('.verify-code-btn');
-                        const codeInput = verificationInput.querySelector('#verification-code');
-
-                        verifyCodeBtn?.addEventListener('click', () => {
-                            const code = codeInput?.value;
-                            if (code?.length === 6) {
-                                // Başarılı doğrulama
-                                altVerification.remove();
-                                document.querySelector('form')?.requestSubmit();
-                            } else {
-                                // Hatalı kod
-                                codeInput?.classList.add('error');
-                                codeInput?.setAttribute('aria-invalid', 'true');
-                            }
-                        });
-
-                    } catch (error) {
-                        console.error('Doğrulama kodu gönderme hatası:', error);
-                        sendCodeBtn.disabled = false;
-                        sendCodeBtn.innerHTML = '<i class="fas fa-envelope"></i> Tekrar Dene';
-                    }
-                });
-            }
-        };
-
-        // reCAPTCHA puan kontrolü
-        async function verifyRecaptchaScore(token) {
-            try {
-                const config = window.EMAILJS_CONFIG;
-                if (!config || !config.RECAPTCHA_SITE_KEY) {
-                    throw new Error('reCAPTCHA yapılandırması bulunamadı.');
-                }
-
-                // Frontend'de token kontrolü
-                if (!token) {
-                    throw new Error('reCAPTCHA token alınamadı.');
-                }
-
-                // Token geçerlilik kontrolü
-                if (typeof token !== 'string' || token.length < 50) {
-                    throw new Error('Geçersiz reCAPTCHA token.');
-                }
-
-                return {
-                    success: true,
-                    score: 0.9
-                };
-            } catch (error) {
-                console.error('reCAPTCHA doğrulama hatası:', error);
-                
-                // Alternatif doğrulama yöntemini göster
-                formHelpers.showAlternativeVerification();
-                
-                throw new Error('Güvenlik doğrulaması başarısız oldu. Alternatif doğrulama yöntemi sunuldu.');
-            }
-        }
-
-        // Form gönderimi sırasında reCAPTCHA kontrolü
-        const verifyRecaptcha = async () => {
-            try {
-                const config = window.EMAILJS_CONFIG;
-                if (!config || !config.RECAPTCHA_SITE_KEY) {
-                    throw new Error('reCAPTCHA yapılandırması bulunamadı.');
-                }
-
-                // reCAPTCHA'nın yüklenip yüklenmediğini kontrol et
-                if (typeof grecaptcha === 'undefined' || !grecaptcha.execute) {
-                    throw new Error('reCAPTCHA yüklenemedi. Alternatif doğrulama kullanılacak.');
-                }
-
-                const token = await grecaptcha.execute(config.RECAPTCHA_SITE_KEY, {action: 'submit'});
-                
-                // Token kontrolü
-                if (!token) {
-                    throw new Error('reCAPTCHA token alınamadı.');
-                }
-
-                const result = await verifyRecaptchaScore(token);
-                if (!result.success || result.score < 0.5) {
-                    throw new Error('Güvenlik doğrulaması başarısız oldu. Alternatif doğrulama kullanılacak.');
-                }
-
-                return token;
-            } catch (error) {
-                console.error('reCAPTCHA hatası:', error);
-                
-                // Form durumunu güncelle
-                formHelpers.updateFormState({
-                    hasError: true,
-                    isSubmitting: false,
-                    retryCount: formHelpers.state.retryCount + 1
-                });
-
-                // Alternatif doğrulama yöntemini göster
-                formHelpers.showAlternativeVerification();
-                
-                throw error;
-            }
-        };
     }
 });
+
+// Bildirim gösterme fonksiyonu
+function showNotification(message, type = 'success') {
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.innerHTML = `
+        <div class="notification-content">
+            <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
+            <p>${message}</p>
+        </div>
+    `;
+
+    document.body.appendChild(notification);
+    setTimeout(() => {
+        notification.classList.add('show');
+    }, 100);
+
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => {
+            notification.remove();
+        }, 300);
+    }, 3000);
+}
 
 // Çerez yönetimi
 document.addEventListener('DOMContentLoaded', function() {
@@ -1319,32 +762,6 @@ const newsletter = {
     }
 };
 
-// Notification helper function
-function showNotification(message, type = 'success') {
-    const notification = document.createElement('div');
-    notification.className = `notification ${type}`;
-    notification.setAttribute('role', 'alert');
-    notification.innerHTML = `
-        <div class="notification-content">
-            <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
-            <p>${message}</p>
-        </div>
-    `;
-    
-    document.body.appendChild(notification);
-    
-    // Animasyon ile göster
-    requestAnimationFrame(() => {
-        notification.classList.add('show');
-    });
-    
-    // 5 saniye sonra kaldır
-    setTimeout(() => {
-        notification.classList.remove('show');
-        setTimeout(() => notification.remove(), 300);
-    }, 5000);
-}
-
 // Initialize chatbot and newsletter when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     chatbot.init();
@@ -1904,4 +1321,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Sayfa yüklendiğinde ilk tab'ı aktif et
     switchPricingTab('web-design');
-}); 
+});
+
+// WhatsApp iletişim fonksiyonu
+function whatsappIletisim(paketAdi, fiyat) {
+    const telefon = "905525400206"; // WhatsApp telefon numarası
+    const mesaj = `Merhaba, ${paketAdi} (${fiyat}₺) paketi hakkında bilgi almak istiyorum.`;
+    const link = `https://api.whatsapp.com/send?phone=${telefon}&text=${encodeURIComponent(mesaj)}`;
+    window.open(link, "_blank");
+} 
