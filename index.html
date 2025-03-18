@@ -1,61 +1,221 @@
 <!DOCTYPE html>
 <html lang="tr" style="scroll-behavior: smooth;">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
-  <meta name="description" content="Profesyonel web tasarım, yazılım çözümleri ve dijital hizmetler.">
-  <meta name="author" content="Musa Sarı">
-  
-  <!-- Open Graph (Facebook & LinkedIn) -->
-  <meta property="og:title" content="MSSR Web - Profesyonel Web Çözümleri">
-  <meta property="og:description" content="Web tasarım, yazılım ve dijital çözümlerle markanızı büyütün.">
-  <meta property="og:image" content="https://mssrweb.github.io/assets/preview.jpg">
-  <meta property="og:url" content="https://mssrweb.github.io/">
-  <meta property="og:type" content="website">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- SEO Meta Etiketleri -->
+    <meta name="description" content="Web sitesi ve yazılım hizmetleri. Modern, hızlı ve güvenli çözümler.">
+    <meta name="keywords" content="web tasarım, web geliştirme, yazılım hizmetleri, dijital çözümler">
+    <meta name="author" content="MSSR Web">
+    <meta name="robots" content="index, follow">
+    <meta name="language" content="Turkish">
+    <meta name="revisit-after" content="7 days">
+    
+    <!-- Open Graph Meta Etiketleri -->
+    <meta property="og:title" content="MSSR Web - Modern Web Çözümleri">
+    <meta property="og:description" content="Modern, profesyonel ve kullanıcı dostu web çözümleri">
+    <meta property="og:image" content="https://mssrweb.com/images/og-image.jpg">
+    <meta property="og:url" content="https://mssrweb.com">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="MSSR Web">
+    
+    <!-- Twitter Card Meta Etiketleri -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="MSSR Web - Modern Web Çözümleri">
+    <meta name="twitter:description" content="Modern, profesyonel ve kullanıcı dostu web çözümleri">
+    <meta name="twitter:image" content="https://mssrweb.com/images/twitter-image.jpg">
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://mssrweb.com">
+    
+    <title>MSSR Web - Modern Web Çözümleri</title>
 
-  <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="MSSR Web - Profesyonel Web Çözümleri">
-  <meta name="twitter:description" content="Web tasarım, yazılım ve dijital çözümlerle markanızı büyütün.">
-  <meta name="twitter:image" content="https://mssrweb.github.io/assets/preview.jpg">
+    <!-- Preconnect ve Resource Hints -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    
+    <!-- Favicon ve Apple Touch Icon -->
+    <link rel="icon" type="image/svg+xml" href="images/favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="images/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png">
+    <link rel="manifest" href="site.webmanifest">
+    <meta name="theme-color" content="#3498db">
+    
+    <!-- Fonts ve Stil Dosyaları -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" 
+          integrity="sha512-..." 
+          crossorigin="anonymous" 
+          referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Google reCAPTCHA v3 -->
+    <script src="https://www.google.com/recaptcha/api.js?render=6LdPWzEpAAAAAFKRv8zCaAuF_7Yc_U9P8K5qCHTY" async defer></script>
+    
+    <!-- EmailJS -->
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js" async></script>
+    <script type="text/javascript">
+        (function() {
+            emailjs.init("FSVko3XP-xF4R-ZL2");
+            window.EMAILJS_CONFIG = {
+                SERVICE_ID: 'service_default',
+                TEMPLATE_ID: 'template_default',
+                PUBLIC_KEY: 'FSVko3XP-xF4R-ZL2',
+                RECAPTCHA_SITE_KEY: '6LdPWzEpAAAAAFKRv8zCaAuF_7Yc_U9P8K5qCHTY'
+            };
+        })();
+    </script>
 
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="https://mssrweb.github.io/assets/favicon.png">
-  
-  <!-- Preload & Preconnect -->
-  <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
-  <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style">
+    <!-- Schema.org markup -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "MSSR Web",
+        "url": "https://mssrweb.com",
+        "logo": "https://mssrweb.com/images/logo.png",
+        "description": "Modern ve profesyonel web tasarım hizmetleri",
+        "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Antalya",
+            "addressCountry": "TR"
+        },
+        "contactPoint": {
+            "@type": "ContactPoint",
+            "telephone": "+90-XXX-XXX-XXXX",
+            "contactType": "customer service",
+            "email": "info@mssr.com"
+        },
+        "sameAs": [
+            "https://twitter.com/mssrweb",
+            "https://linkedin.com/company/mssrweb",
+            "https://github.com/mssrweb"
+        ]
+    }
+    </script>
 
-  <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-  
-  <!-- Google Analytics 4 -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-PNZ77N2T43"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-PNZ77N2T43', { 'anonymize_ip': true });
-  </script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "MSSR Web",
+        "url": "https://mssrweb.com",
+        "potentialAction": {
+            "@type": "SearchAction",
+            "target": "https://mssrweb.com/search?q={search_term_string}",
+            "query-input": "required name=search_term_string"
+        }
+    }
+    </script>
 
-  <!-- Schema.org Structured Data -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    "name": "MSSR Web",
-    "url": "https://mssrweb.github.io/",
-    "logo": "https://mssrweb.github.io/assets/logo.png",
-    "description": "Profesyonel web tasarım, yazılım ve dijital hizmetler.",
-    "sameAs": [
-      "https://www.linkedin.com/in/musasari/",
-      "https://twitter.com/mssrweb"
-    ]
-  }
-  </script>
+    <!-- Service Schema Markup -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Service",
+        "serviceType": "Web Development",
+        "provider": {
+            "@type": "Organization",
+            "name": "MSSR Web"
+        },
+        "areaServed": {
+            "@type": "Country",
+            "name": "Turkey"
+        },
+        "hasOfferCatalog": {
+            "@type": "OfferCatalog",
+            "name": "Web Hizmetleri",
+            "itemListElement": [
+                {
+                    "@type": "Offer",
+                    "itemOffered": {
+                        "@type": "Service",
+                        "name": "Web Tasarım",
+                        "description": "Modern ve kullanıcı dostu web siteleri tasarlıyoruz"
+                    }
+                },
+                {
+                    "@type": "Offer",
+                    "itemOffered": {
+                        "@type": "Service",
+                        "name": "Web Geliştirme",
+                        "description": "Hızlı ve güvenli web uygulamaları geliştiriyoruz"
+                    }
+                },
+                {
+                    "@type": "Offer",
+                    "itemOffered": {
+                        "@type": "Service",
+                        "name": "SEO Optimizasyonu",
+                        "description": "Arama motorlarında üst sıralarda yer almanızı sağlıyoruz"
+                    }
+                }
+            ]
+        }
+    }
+    </script>
+
+    <style>
+        #dynamic-favicon {
+            display: none;
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #dynamic-favicon::before {
+            content: 'M';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-weight: bold;
+            font-size: 20px;
+            font-family: Arial, sans-serif;
+        }
+    </style>
+    <script>
+        // Dinamik favicon oluşturma
+        document.addEventListener('DOMContentLoaded', function() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 32;
+            canvas.height = 32;
+            const ctx = canvas.getContext('2d');
+
+            // Gradient arka plan
+            const gradient = ctx.createLinearGradient(0, 0, 32, 32);
+            gradient.addColorStop(0, '#2563eb');
+            gradient.addColorStop(1, '#3b82f6');
+            
+            // Arka planı çiz
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.roundRect(0, 0, 32, 32, 8);
+            ctx.fill();
+
+            // 'M' harfini çiz
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 24px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('M', 16, 18);
+
+            // Favicon olarak ayarla
+            const link = document.createElement('link');
+            link.type = 'image/x-icon';
+            link.rel = 'shortcut icon';
+            link.href = canvas.toDataURL();
+            document.head.appendChild(link);
+        });
+    </script>
 </head>
-
 <body>
     <!-- Skip Link -->
     <a href="#main-content" class="skip-link">Ana içeriğe git</a>
